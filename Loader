@@ -1,0 +1,25 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+public static class Loader
+{
+    public enum Scene
+    {
+        AlgorithmScene, ChoiceScene,ExplainScene,MainMenuScene, CreditsScene, MenuScene, BindingsScene
+    }
+
+    public static void Unload(Scene scene)
+    {
+        SceneManager.UnloadSceneAsync(Scene.MenuScene.ToString());
+    }
+    public static void Menu()
+    {
+        SceneManager.LoadScene(5, LoadSceneMode.Additive);
+    }
+    public static void Load(Scene scene)
+    {
+        SceneManager.LoadScene(scene.ToString());
+    }
+}
