@@ -1,0 +1,20 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+public class MenuCaller : MonoBehaviour
+{
+    public KeyCode key;
+    private void Update()
+    {
+        
+        if(Input.GetKeyDown(key))
+        {
+            if (SceneManager.sceneCount <= 1 && SceneManager.GetActiveScene().name == "AlgorithmScene")
+            {
+                Loader.Menu();
+            }
+        }
+    }
+}
