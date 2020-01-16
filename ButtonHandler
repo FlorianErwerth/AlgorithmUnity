@@ -1,0 +1,20 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.EventSystems;
+
+public class ButtonHandler : MonoBehaviour, IPointerEnterHandler
+{
+    public AudioClip click;
+    public AudioClip hover;
+    public void clickedSound()
+    {
+        AudioSource.PlayClipAtPoint(click, Vector3.zero);
+    }
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        AudioSource.PlayClipAtPoint(hover, Vector3.zero);
+    }
+}
