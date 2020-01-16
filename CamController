@@ -1,0 +1,50 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class CamController : MonoBehaviour
+{
+    CCScript cellScript;
+    Vector3 move;
+    float rotAX, rotAZ;
+    float scroll;
+    float speed;
+
+    private void Start()
+    {
+        speed = 10;
+        scroll = 0;
+        rotAX = 45;
+        move = new Vector3(Camera.main.transform.position.x, Camera.main.transform.position.y, Camera.main.transform.position.z);
+        cellScript = GameObject.Find("CellController").GetComponent<CCScript>();
+    }
+
+    private void FixedUpdate()
+    {
+        if(cellScript.camInPosition == true)
+        {
+            transform.rotation = Quaternion.Euler(rotAX, 0, 0);
+            controlCam();
+        }
+    }
+
+    private void controlCam()
+    {
+        if(Input.GetKey(KeyCode.KeypadPlus)) scroll -= 1f;
+        if (Input.GetKey(KeyCode.KeypadMinus)) scroll += 1f;
+        Camera.main.fieldOfView += scroll;
+        Camera.main.fieldOfView = Mathf.Clamp(Camera.main.fieldOfView, 20, 80);
+        scroll = 0;
+        rotAX -= Input.GetAxis("Mouse Y");
+        rotAX = Mathf.Clamp(rotAX, 20, 80);
+        rotAZ += Input.GetAxis("Mouse X");
+        transform.rotation = Quaternion.Euler(rotAX, rotAZ, 0);
+        move.x += Input.GetAxis("Horizontal") * speed;
+        move.z += Input.GetAxis("Vertical") * speed;
+        move.y = 0;
+        move = Camera.main.transform.TransformDirection(move) * Time.deltaTime;
+        transform.position += move;
+        transform.position -= new Vector3(0, move.y, 0) ;
+        move = Vector3.zero;
+    }
+}
