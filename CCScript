@@ -1,0 +1,363 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+
+public class CCScript : MonoBehaviour
+{
+    #region Variables
+    public Button next;
+    [HideInInspector]
+    public bool buttonPressed;
+    bool done, cellChosen;
+    [HideInInspector]
+    public bool camInPosition;
+    Component[] colors;
+    GameObject unvisitedCell;
+    GameObject newVisitedNeighbor;
+    CellScript unvisitedScript;
+    public GameObject cellPrefab, cellToChose;
+    //choose start
+    int startX, startY;
+    int step, random;
+    public int nullCounter;
+    GameObject visitedNeighbor;
+    public GameObject neighbor;
+    public GameObject[] neighbors;
+    public GameObject currentCell;
+    GameObject temporaryCurrent;
+    CellScript currentScript;
+    CellScript temporaryScript;
+    GameObject[,] cells, cellsToChose;
+    #endregion
+
+    private void Start()
+    {
+        done = false;
+        buttonPressed = false;
+        //StartX = (int) screenpoint to world position.x 
+        camInPosition = false;
+        cellChosen = false;
+        cells = new GameObject[10, 10];
+        cellsToChose = new GameObject[10, 10];
+        nullCounter = 0;
+        step = 0;
+        done = false;
+        neighbors = new GameObject[4];
+
+        /*
+         * Creating the grid of cells
+         */
+
+        for (int i = 0; i < 10; i++)
+        {
+            for (int j = 0; j < 10; j++)
+            {
+                cellsToChose[i, j] = Instantiate(cellToChose, new Vector3(cellToChose.transform.position.x + i, 1f, cellToChose.transform.position.z + j), Quaternion.identity);
+            }
+        }
+    }
+
+    private void FixedUpdate()
+    {
+        Debug.Log(SceneManager.GetActiveScene().name);
+        /*
+        * STEP 1: CHOOSE RANDOM CELL
+        */
+
+        /*
+         * instantiate cells after the cell was chosen maybe with bool
+         */
+        if(SceneManager.GetActiveScene().name == "AlgorithmScene" && SceneManager.sceneCount == 1)
+        {
+            if (cellChosen == false)
+            {
+                Camera.main.transform.position = new Vector3(0, 10, 0);
+                Camera.main.transform.rotation = Quaternion.Euler(90, 0, 0);
+                if (Input.GetKey(KeyCode.Mouse0))
+                {
+                    RaycastHit hit;
+                    var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                    if (Physics.Raycast(ray, out hit))
+                    {
+                        Cell cellScript = hit.collider.gameObject.GetComponent<Cell>();
+                        startX = (int)(cellScript.coordinates().x + 4.5);
+                        startY = (int)(cellScript.coordinates().z + 4.5);
+                        cellChosen = true;
+                    }
+
+                }
+            }
+            if (cellChosen == true)
+            {
+                if (camInPosition == false)
+                {
+                    Camera.main.transform.position = new Vector3(0f, 5f, -7f);
+                    Camera.main.transform.rotation = Quaternion.Euler(45, 0, 0);
+                    camInPosition = true;
+                }
+                if (step == 0)
+                {
+                    for (int i = 0; i < 10; i++)
+                    {
+                        for (int j = 0; j < 10; j++)
+                        {
+                            cellsToChose[i, j].SetActive(false);
+                            cells[i, j] = Instantiate(cellPrefab, new Vector3(cellPrefab.transform.position.x + i, 0.5f, cellPrefab.transform.position.z + j), Quaternion.identity);
+                        }
+                    }
+
+                    currentCell = cells[startX, startY];
+                    changeColor(3, currentCell);
+                    currentScript = currentCell.GetComponent<CellScript>();
+                    currentScript.visited = true;
+                    changeColor(3, currentCell);
+                    step = 1;
+                }
+
+                if (buttonPressed)
+                {
+                    buttonPressed = false;
+                    switch (step)
+                    {
+                        case 1:
+                            findNeighbors();
+                            break;
+                        case 2:
+                            pickRandomNeighbor();
+                            break;
+                        case 3:
+                            destroyWall();
+                            break;
+                    }
+                }
+
+
+
+            }
+
+
+
+            void findNeighbors()
+            {
+                nullCounter = 0;
+                //search for neighbor and pick a random neighbor
+                //order is always up, down, left, right
+                //up
+                if (currentScript.pos.y + 4.5 + 1 < 10 && cells[(int)(currentScript.pos.x + 4.5), (int)(currentScript.pos.y + 4.5 + 1)].GetComponent<CellScript>().visited == false)
+                {
+                    neighbors[0] = cells[(int)(currentScript.pos.x + 4.5), (int)(currentScript.pos.y + 4.5 + 1)];
+                    changeColor(4, neighbors[0]);
+                }
+                //down
+                if ((int)(currentScript.pos.y + 4.5 - 1) > -1 && cells[(int)(currentScript.pos.x + 4.5), (int)(currentScript.pos.y + 4.5 - 1)].GetComponent<CellScript>().visited == false)
+                {
+                    neighbors[1] = cells[(int)(currentScript.pos.x + 4.5), (int)(currentScript.pos.y + 4.5 - 1)];
+                    changeColor(4, neighbors[1]);
+                }
+                //left
+                if ((int)(currentScript.pos.x + 4.5 - 1) > -1 && cells[(int)(currentScript.pos.x + 4.5 - 1), (int)(currentScript.pos.y + 4.5)].GetComponent<CellScript>().visited == false)
+                {
+                    neighbors[2] = cells[(int)(currentScript.pos.x + 4.5 - 1), (int)(currentScript.pos.y + 4.5)];
+                    changeColor(4, neighbors[2]);
+                }
+                //right
+                if (currentScript.pos.x + 4.5 + 1 < 10 && cells[(int)(currentScript.pos.x + 4.5 + 1), (int)(currentScript.pos.y + 4.5)].GetComponent<CellScript>().visited == false)
+                {
+                    neighbors[3] = cells[(int)(currentScript.pos.x + 4.5 + 1), (int)(currentScript.pos.y + 4.5)];
+                    changeColor(4, neighbors[3]);
+                }
+                step = 2;
+                //destroy wall between neighbor and current cell
+                //neighbor becomes current cell
+
+
+            }
+
+            void pickRandomNeighbor()
+            {
+                random = Random.Range(0, 4);
+                if (neighbors[random] != null)
+                {
+                    if (neighbors[random].GetComponent<CellScript>().visited == false)
+                    {
+                        neighbor = neighbors[random];
+                        changeColor(5, neighbor);
+                        step = 3;
+                    }
+                }
+                if (neighbors[random] == null)
+                {
+                    nullCounter = 0;
+                    for (int i = 0; i < neighbors.Length; i++)
+                    {
+                        if (neighbors[i] == null) nullCounter++;
+                        else break;
+                    }
+                    if (nullCounter == 4)
+                    {
+                        changeColor(1, neighbor);
+                        hunt();
+                    }
+                    else pickRandomNeighbor();
+                }
+
+            }
+
+            void destroyWall()
+            {
+                RaycastHit hit;
+                if (Physics.Raycast(currentCell.transform.position, (neighbor.transform.position - currentCell.transform.position), out hit))
+                {
+                    //current cell is visited
+                    currentScript.visited = true;
+                    changeColor(1, currentCell);
+                    //neighbor is new current cell and also visited
+                    neighbor.GetComponent<CellScript>().visited = true;
+                    currentCell = neighbor;
+                    currentScript = currentCell.GetComponent<CellScript>();
+                    //neighbors are no longer neighbors!
+                    for (int i = 0; i < neighbors.Length; i++)
+                    {
+                        if (neighbors[i] != null)
+                        {
+                            changeColor(2, neighbors[i]);
+                            neighbors[i] = null;
+                        }
+                    }
+
+                    //destroy wall
+                    if (hit.collider.tag != "OuterWall")
+                    {
+                        hit.collider.gameObject.SetActive(false);
+                        step = 1;
+                    }
+                }
+            }
+            void hunt()
+            {
+                newVisitedNeighbor = null;
+                unvisitedCell = null;
+                //finding a unvisited cell
+                for (int i = 0; i < 10; i++)
+                {
+                    if (newVisitedNeighbor != null)
+                    {
+                        break;
+                    }
+                    for (int j = 0; j < 10; j++)
+                    {
+                        if (cells[i, j].GetComponent<CellScript>().visited == false)
+                        {
+                            unvisitedCell = cells[i, j];
+                            unvisitedScript = unvisitedCell.GetComponent<CellScript>();
+                            currentScript.visited = true;
+                            //check if it has an visited neighbor
+                            //if yes, break out of both loops and break the wall between them
+                            if (unvisitedScript.pos.y + 4.5 + 1 < 10 && cells[(int)(unvisitedScript.pos.x + 4.5), (int)(unvisitedScript.pos.y + 4.5 + 1)].GetComponent<CellScript>().visited == true)
+                            {
+                                visitedNeighbor = cells[(int)(unvisitedScript.pos.x + 4.5), (int)(unvisitedScript.pos.y + 4.5 + 1)];
+                                break;
+                            }
+                            if (unvisitedScript.pos.y + 4.5 - 1 > -1 && cells[(int)(unvisitedScript.pos.x + 4.5), (int)(unvisitedScript.pos.y + 4.5 - 1)].GetComponent<CellScript>().visited == true)
+                            {
+                                visitedNeighbor = cells[(int)(unvisitedScript.pos.x + 4.5), (int)(unvisitedScript.pos.y + 4.5 - 1)];
+                                break;
+                            }
+                            if (unvisitedScript.pos.x + 4.5 + 1 < 10 && cells[(int)(unvisitedScript.pos.x + 4.5 + 1), (int)(unvisitedScript.pos.y + 4.5)].GetComponent<CellScript>().visited == true)
+                            {
+                                visitedNeighbor = cells[(int)(unvisitedScript.pos.x + 4.5 + 1), (int)(unvisitedScript.pos.y + 4.5)];
+                                break;
+                            }
+                            if (unvisitedScript.pos.x + 4.5 - 1 > -1 && cells[(int)(unvisitedScript.pos.x + 4.5 - 1), (int)(unvisitedScript.pos.y + 4.5)].GetComponent<CellScript>().visited == true)
+                            {
+                                visitedNeighbor = cells[(int)(unvisitedScript.pos.x + 4.5 - 1), (int)(unvisitedScript.pos.y + 4.5)];
+                                break;
+                            }
+                        }
+                    }
+
+                }
+                if (unvisitedCell == null)
+                {
+                    AlgoEnd();
+                }
+                RaycastHit hit;
+                if (unvisitedCell != null && visitedNeighbor != null)
+                {
+                    changeColor(6, unvisitedCell);
+                    changeColor(4, visitedNeighbor);
+                    if (Physics.Raycast(unvisitedCell.transform.position, (visitedNeighbor.transform.position - unvisitedCell.transform.position), out hit))
+                    {
+                        if (hit.collider.gameObject.tag != "OuterWall")
+                        {
+                            hit.collider.gameObject.SetActive(false);
+                            currentCell = unvisitedCell;
+                            changeColor(3, currentCell);
+                            changeColor(1, visitedNeighbor);
+                            currentScript = unvisitedScript;
+                            findNeighbors();
+                        }
+                    }
+                }
+            }
+
+            void changeColor(int type, GameObject cell)
+            {
+                Renderer[] renderers = cell.GetComponentsInChildren<Renderer>();
+                switch (type)
+                {
+                    //visited
+                    case 1:
+                        foreach (Renderer rend in renderers)
+                        {
+                            rend.material.color = Color.gray;
+                        }
+                        break;
+                    //unvisited
+                    case 2:
+                        foreach (Renderer rend in renderers)
+                        {
+                            rend.material.color = Color.green;
+                        }
+                        break;
+
+                    //current
+                    case 3:
+                        foreach (Renderer rend in renderers)
+                        {
+                            rend.material.color = Color.white;
+                        }
+                        break;
+                    //neighbor
+                    case 4:
+                        foreach (Renderer rend in renderers)
+                        {
+                            rend.material.color = Color.cyan;
+                        }
+                        break;
+                    //random neighbor
+                    case 5:
+                        foreach (Renderer rend in renderers)
+                        {
+                            rend.material.color = Color.magenta;
+                        }
+                        break;
+                    //unvisited cell after hunt
+                    case 6:
+                        foreach (Renderer rend in renderers)
+                        {
+                            rend.material.color = Color.blue;
+                        }
+                        break;
+                }
+            }
+            void AlgoEnd()
+            {
+                done = true;
+                Debug.Log("Algorithm done.");
+            }
+        }
+    }
+}
